@@ -70,6 +70,20 @@ export default function TermsView() {
         </ul>
       </Section>
 
+      <Section title="Data accuracy and recency">
+        <p>
+          Data displayed in Coffer is <strong>not real-time</strong>. Balances and transactions reflect the most recent statement or manual sync available — which may be days, weeks, or months old.
+        </p>
+        <p>
+          To get up-to-date figures, download a fresh statement directly from your bank, credit card issuer, or financial institution and upload it at{' '}
+          <a href="https://cofr.in" style={{ color: 'var(--accent-text)' }}>cofr.in</a>.
+          Alternatively, use the Gmail sync feature if your institution sends statement emails.
+        </p>
+        <p>
+          Always verify critical figures — such as credit card dues, loan EMIs, or investment values — directly with the source before making financial decisions.
+        </p>
+      </Section>
+
       <Section title="Disclaimer of warranties">
         <p>
           Coffer is provided <strong>"as is"</strong> without warranty of any kind, express or implied. We do not guarantee accuracy of parsed statement data, balance figures, or subscription detection. Verify all figures with your bank or card issuer.
