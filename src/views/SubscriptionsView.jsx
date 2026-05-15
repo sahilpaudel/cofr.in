@@ -242,7 +242,7 @@ export default function SubscriptionsView() {
   const scanGmail = async () => {
     setScanState('scanning');
     try {
-      const token = await getToken(CLIENT_ID);
+      const { token } = await getToken(CLIENT_ID);
       const results = await fetchSubscriptionEmails(token);
       setScanState({ results });
     } catch (err) {
