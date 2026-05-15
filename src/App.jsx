@@ -18,46 +18,51 @@ import ImportView from './views/ImportView.jsx';
 import StatementsView from './views/StatementsView.jsx';
 import StatementReportView from './views/StatementReportView.jsx';
 import SubscriptionsView from './views/SubscriptionsView.jsx';
+import PrivacyView from './views/PrivacyView.jsx';
+import TermsView from './views/TermsView.jsx';
 
-// ── hash routing helpers ────────────────────────────────────────────────────
-const HASH_TO_VIEW = {
-  '':              'dashboard',
-  'accounts':      'accounts',
-  'subscriptions': 'subscriptions',
-  'statements':    'statements',
-  'import':        'import',
-  'about':         'about',
+// ── pathname routing helpers ─────────────────────────────────────────────────
+const PATH_TO_VIEW = {
+  '/':              'dashboard',
+  '/accounts':      'accounts',
+  '/subscriptions': 'subscriptions',
+  '/statements':    'statements',
+  '/import':        'import',
+  '/about':         'about',
+  '/privacy':       'privacy',
+  '/terms':         'terms',
 };
-const VIEW_TO_HASH = {
-  dashboard:      '',
-  accounts:       'accounts',
-  subscriptions:  'subscriptions',
-  statements:     'statements',
-  import:         'import',
-  about:          'about',
+const VIEW_TO_PATH = {
+  dashboard:      '/',
+  accounts:       '/accounts',
+  subscriptions:  '/subscriptions',
+  statements:     '/statements',
+  import:         '/import',
+  about:          '/about',
+  privacy:        '/privacy',
+  terms:          '/terms',
 };
 
-function parseHash() {
-  const raw = window.location.hash.replace(/^#\/?/, '');
-  if (raw.startsWith('statements/')) {
-    return { view: 'statement', statementId: raw.slice('statements/'.length) };
+function parsePath() {
+  const path = window.location.pathname.replace(/\/$/, '') || '/';
+  if (path.startsWith('/statements/')) {
+    return { view: 'statement', statementId: path.slice('/statements/'.length) };
   }
-  return { view: HASH_TO_VIEW[raw] ?? 'dashboard', statementId: null };
+  return { view: PATH_TO_VIEW[path] ?? 'dashboard', statementId: null };
 }
 
-function pushHash(view, statementId = null) {
-  const path = view === 'statement' && statementId
-    ? `statements/${statementId}`
-    : (VIEW_TO_HASH[view] ?? '');
-  const next = '#/' + path;
-  if (window.location.hash !== next) window.history.pushState(null, '', next);
+function pushPath(view, statementId = null) {
+  const next = view === 'statement' && statementId
+    ? `/statements/${statementId}`
+    : (VIEW_TO_PATH[view] ?? '/');
+  if (window.location.pathname !== next) window.history.pushState(null, '', next);
 }
-// ────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [accounts, setAccounts] = useState(loadAccounts);
   const [members,  setMembers]  = useState(loadMembers);
-  const [location, setLocation] = useState(parseHash);
+  const [location, setLocation] = useState(parsePath);
   const [modal, setModal] = useState(null);
   const [picker, setPicker] = useState(false);
   const [familyModal, setFamilyModal] = useState(false);
@@ -71,13 +76,13 @@ export default function App() {
 
   // Sync browser back/forward → state
   useEffect(() => {
-    const onPop = () => setLocation(parseHash());
+    const onPop = () => setLocation(parsePath());
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const navigate = (newView, id = null) => {
-    pushHash(newView, id);
+    pushPath(newView, id);
     setLocation({ view: newView, statementId: id });
   };
 
@@ -236,6 +241,8 @@ export default function App() {
             />
           )}
           {view === 'about' && <AboutView onNavigate={navigate} />}
+          {view === 'privacy' && <PrivacyView />}
+          {view === 'terms' && <TermsView />}
         </main>
 
         <Footer onAbout={() => navigate('about')} />

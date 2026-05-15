@@ -27,6 +27,14 @@ export default function Footer({ onAbout }) {
               </button>
             </>
           )}
+          <span style={{ color: 'var(--line)' }}>·</span>
+          <a href="/privacy" style={{ fontSize: 11, color: 'var(--text-faint)', textDecoration: 'underline', textDecorationColor: 'var(--line)' }}>
+            Privacy
+          </a>
+          <span style={{ color: 'var(--line)' }}>·</span>
+          <a href="/terms" style={{ fontSize: 11, color: 'var(--text-faint)', textDecoration: 'underline', textDecorationColor: 'var(--line)' }}>
+            Terms
+          </a>
         </div>
       </div>
     </footer>
