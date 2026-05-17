@@ -32,47 +32,30 @@ const RULES = [
   },
 ];
 
-// Generic words that appear in almost every bank name — not useful for matching.
-const GENERIC_BANK_WORDS = new Set(['bank', 'ltd', 'limited', 'co', 'corp', 'india', 'the', 'of', 'and']);
-
-// Extract matchable keywords from an institution name.
-// "HDFC Bank Limited" → ["HDFC"]   "Axis Bank" → ["AXIS"]
-// "State Bank of India" → ["STATE", "SBI-like"] — we skip short/generic words
-function institutionKeywords(name) {
-  return (name || '')
-    .split(/[\s\-_\/,]+/)
-    .map(w => w.toUpperCase())
-    .filter(w => w.length >= 3 && !GENERIC_BANK_WORDS.has(w.toLowerCase()));
-}
-
-// Build a flat list of keywords from all the user's bank accounts
-// (excluding the account the current statement belongs to, to avoid
-// matching the source bank's own name as a self-transfer).
-function buildSelfKeywords(accounts, excludeAccountId) {
-  const keywords = new Set();
+// Build a set of the user's own account number suffixes (last 4 digits).
+// Institution name alone is too broad — "HDFC" appears in payments to any HDFC customer.
+function buildSelfAccountSuffixes(accounts, excludeAccountId) {
+  const suffixes = new Set();
   for (const acc of accounts) {
     if (acc.id === excludeAccountId) continue;
     if (acc.type !== 'bank' && acc.type !== 'creditCard') continue;
-    for (const kw of institutionKeywords(acc.institution || acc.issuer || '')) {
-      keywords.add(kw);
-    }
-    // Last 4 digits of account number are also a strong signal
     const num = String(acc.accountNumber || '');
-    if (num.length >= 4) keywords.add(num.slice(-4));
+    if (num.length >= 4) suffixes.add(num.slice(-4));
   }
-  return keywords;
+  return suffixes;
 }
 
-function isSelfTransfer(desc, selfKeywords) {
+function isSelfTransfer(desc, selfSuffixes) {
   // Explicit markers some banks add
   if (/SELF\s*TRANSFER|OWN\s*A\/C|OWN\s*ACCOUNT/i.test(desc)) return true;
   // UPI to self — some banks write "UPI/SELF/"
   if (/UPI\/SELF\b/i.test(desc)) return true;
-  const upper = desc.toUpperCase();
-  for (const kw of selfKeywords) {
-    // Match as a word boundary to avoid "AXIS" matching "TAXISWAL"
-    const re = new RegExp(`(?:^|[^A-Z])${kw}(?:[^A-Z]|$)`);
-    if (re.test(upper)) return true;
+  // Match last-4 of a known own account number appearing in the narration digits
+  if (selfSuffixes.size) {
+    const digits = desc.replace(/\D/g, '');
+    for (const suffix of selfSuffixes) {
+      if (digits.includes(suffix)) return true;
+    }
   }
   return false;
 }
@@ -99,8 +82,8 @@ export function detectMethod(txn, accounts = [], currentAccountId = null) {
 
   // Only attempt self-transfer detection for transfer-type transactions.
   if ((base === 'Transfer' || base === 'UPI') && accounts.length) {
-    const keywords = buildSelfKeywords(accounts, currentAccountId);
-    if (keywords.size && isSelfTransfer(d, keywords)) return 'Self Transfer';
+    const suffixes = buildSelfAccountSuffixes(accounts, currentAccountId);
+    if (isSelfTransfer(d, suffixes)) return 'Self Transfer';
   }
 
   return base;

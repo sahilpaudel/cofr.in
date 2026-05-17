@@ -106,7 +106,7 @@ export default function StatementReportView({ report, accounts = [], onBack, onD
       )}
 
       {/* Summary cards */}
-      <SummarySection summary={summary} accountType={accountType} totalSpend={totalSpend} totalIncome={totalIncome} />
+      <SummarySection summary={summary} accountType={accountType} totalSpend={totalSpend} totalIncome={totalIncome} transactions={transactions} />
 
       {/* Spending breakdown */}
       {catTotals.length > 0 && (
@@ -233,7 +233,7 @@ export default function StatementReportView({ report, accounts = [], onBack, onD
                   {/* Description */}
                   <span style={{
                     flex: 1, fontSize: 12.5, fontWeight: 500,
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    wordBreak: 'break-word',
                   }}>
                     {t.description}
                   </span>
@@ -290,12 +290,15 @@ export default function StatementReportView({ report, accounts = [], onBack, onD
   );
 }
 
-function SummarySection({ summary, accountType, totalSpend, totalIncome }) {
+function SummarySection({ summary, accountType, totalSpend, totalIncome, transactions = [] }) {
   const items = [];
 
   if (accountType === 'bank') {
-    if (summary.openingBalance != null) items.push({ label: 'Opening balance', value: fmtINR(summary.openingBalance) });
-    if (summary.closingBalance != null) items.push({ label: 'Closing balance', value: fmtINR(summary.closingBalance), accent: 'var(--positive)' });
+    const withBalance = transactions.filter(t => t.balance != null);
+    const openingBal  = withBalance.length > 0 ? withBalance[0].balance : null;
+    const closingBal  = withBalance.length > 0 ? withBalance[withBalance.length - 1].balance : null;
+    if (openingBal != null) items.push({ label: 'Opening balance', value: fmtINR(openingBal) });
+    if (closingBal != null) items.push({ label: 'Closing balance', value: fmtINR(closingBal), accent: 'var(--positive)' });
     if (summary.totalCredits  != null) items.push({ label: 'Total credits',   value: fmtINR(summary.totalCredits),  accent: 'var(--positive)' });
     if (summary.totalDebits   != null) items.push({ label: 'Total debits',    value: fmtINR(summary.totalDebits),   accent: 'var(--negative)' });
   } else if (accountType === 'creditCard') {

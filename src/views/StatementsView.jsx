@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { loadStatements } from '../lib/statementStore.js';
+import { loadStatements, deleteStatement } from '../lib/statementStore.js';
 import { fmtINR } from '../lib/format.js';
+import { Icon } from '../icons/Icon.jsx';
 import { CATEGORY_COLORS } from '../lib/categorize.js';
 import { ACCOUNT_TYPES } from '../lib/accountTypes.js';
 import { detectMethod, groupByMethod, METHOD_ORDER, METHOD_COLORS } from '../lib/paymentMethod.js';
@@ -65,6 +66,11 @@ export default function StatementsView({ onOpen, accounts = [], onAccountUpdate 
   const handleViewReport = (id) => {
     setRefreshKey(k => k + 1);
     onOpen(id);
+  };
+
+  const handleDelete = (id) => {
+    deleteStatement(id);
+    setRefreshKey(k => k + 1);
   };
 
   return (
@@ -156,9 +162,9 @@ export default function StatementsView({ onOpen, accounts = [], onAccountUpdate 
 
       {/* Saved statements — split by type */}
       <div key={refreshKey}>
-        <StatementSection label="Bank" list={bankStatements} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} />
-        <StatementSection label="Credit card" list={ccStatements} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} />
-        <StatementSection label="Other" list={otherStatements} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} />
+        <StatementSection label="Bank" list={bankStatements} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} onDelete={handleDelete} />
+        <StatementSection label="Credit card" list={ccStatements} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} onDelete={handleDelete} />
+        <StatementSection label="Other" list={otherStatements} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} onDelete={handleDelete} />
       </div>
 
       {statements.length === 0 && (
@@ -172,7 +178,7 @@ export default function StatementsView({ onOpen, accounts = [], onAccountUpdate 
   );
 }
 
-function StatementSection({ label, list, onOpen, accounts, onAccountUpdate }) {
+function StatementSection({ label, list, onOpen, accounts, onAccountUpdate, onDelete }) {
   if (list.length === 0) return null;
   return (
     <div style={{ marginBottom: 28 }}>
@@ -184,7 +190,7 @@ function StatementSection({ label, list, onOpen, accounts, onAccountUpdate }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {list.map(s => (
-          <StatementCard key={s.id} s={s} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} />
+          <StatementCard key={s.id} s={s} onOpen={onOpen} accounts={accounts} onAccountUpdate={onAccountUpdate} onDelete={onDelete} />
         ))}
       </div>
     </div>
@@ -539,9 +545,53 @@ function InsightHero({ label, value, accent, glow }) {
   );
 }
 
+/* ── Paid toggle ────────────────────────────────────────────────── */
+
+function PaidToggle({ paid, onMarkPaid, onMarkUnpaid, canUnpay }) {
+  const [hovered, setHovered] = useState(false);
+
+  if (paid) {
+    const showUnpay = canUnpay;
+    return (
+      <button
+        onClick={showUnpay ? onMarkUnpaid : undefined}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          fontSize: 10.5, padding: '3px 10px',
+          border: `1px solid ${hovered && showUnpay ? 'var(--negative)' : 'var(--positive)'}`,
+          borderRadius: 6, cursor: showUnpay ? 'pointer' : 'default',
+          background: hovered && showUnpay ? 'transparent' : 'transparent',
+          color: hovered && showUnpay ? 'var(--negative)' : 'var(--positive)',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        {hovered && showUnpay ? 'Mark unpaid' : '✓ Paid'}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={onMarkPaid}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        fontSize: 10.5, padding: '3px 10px',
+        border: `1px solid ${hovered ? 'var(--positive)' : 'var(--line)'}`,
+        borderRadius: 6, cursor: 'pointer', background: 'transparent',
+        color: hovered ? 'var(--positive)' : 'var(--text-faint)',
+        transition: 'all 0.15s ease',
+      }}
+    >
+      Mark as paid
+    </button>
+  );
+}
+
 /* ── Statement card ─────────────────────────────────────────────── */
 
-function StatementCard({ s, onOpen, accounts = [], onAccountUpdate }) {
+function StatementCard({ s, onOpen, accounts = [], onAccountUpdate, onDelete }) {
   const [locallyPaid, setLocallyPaid] = useState(false);
 
   const txns      = s.transactions || [];
@@ -556,17 +606,12 @@ function StatementCard({ s, onOpen, accounts = [], onAccountUpdate }) {
     ? new Date(s.savedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : '';
 
-  // Bank: opening / closing / net
-  const isBank = s.accountType === 'bank';
-  const opening = summary.openingBalance ?? null;
-  const closing = summary.closingBalance ?? null;
-  const net     = (opening != null && closing != null) ? closing - opening : null;
-
   // CC: amount due + due date
   const isCC    = s.accountType === 'creditCard';
   const due     = summary.totalDue ?? null;
   // Prefer parsed dueDate; fall back to the linked account's stored ISO dueDate
   const linkedAccount = accounts.find(a => a.id === s.accountId);
+  const institution   = linkedAccount?.institution || linkedAccount?.issuer || linkedAccount?.lender || '';
   const dueDate       = summary.dueDate || (linkedAccount?.dueDate
     ? new Date(linkedAccount.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : '');
@@ -602,94 +647,51 @@ function StatementCard({ s, onOpen, accounts = [], onAccountUpdate }) {
       onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--text-faint)'}
       onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--line)'}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{s.accountNickname}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>
+            {institution ? `${institution} (${s.accountNickname})` : s.accountNickname}
+          </div>
           <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
-            {s.source?.date || savedAt}
+            Statement Imported At: {savedAt}
             {s.source?.subject && <span style={{ opacity: 0.7 }}> · {s.source.subject}</span>}
           </div>
         </div>
 
-        {/* Bank: opening → closing + net */}
-        {isBank && (opening != null || closing != null) && (
-          <div style={{ textAlign: 'right', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-            {opening != null && (
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 1 }}>Opening</div>
-                <div style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: 'var(--text-dim)' }}>
-                  {fmtINR(opening)}
+        {/* CC: amount due + paid toggle */}
+        {isCC && due != null && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {!paid && (
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: 'var(--negative)' }}>
+                  {fmtINR(due)} due
                 </div>
+                {dueDate && (
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
+                    by {dueDate}
+                  </div>
+                )}
               </div>
             )}
-            {closing != null && (
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 1 }}>Closing</div>
-                <div style={{ fontSize: 13, fontVariantNumeric: 'tabular-nums', color: 'var(--text-dim)' }}>
-                  {fmtINR(closing)}
-                </div>
-              </div>
-            )}
-            {net != null && (
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 1 }}>Net</div>
-                <div style={{
-                  fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums',
-                  color: net >= 0 ? 'var(--positive)' : 'var(--negative)',
-                }}>
-                  {net >= 0 ? '+' : ''}{fmtINR(net)}
-                </div>
-              </div>
-            )}
+            <PaidToggle paid={paid} onMarkPaid={handleMarkPaid} onMarkUnpaid={handleMarkUnpaid} canUnpay={locallyPaid || accountExplicitlyPaid} />
           </div>
         )}
 
-        {/* CC: amount due + mark paid */}
-        {isCC && !paid && due != null && (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 14, fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: 'var(--negative)' }}>
-              {fmtINR(due)} due
-            </div>
-            {dueDate && (
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
-                by {dueDate}
-              </div>
-            )}
-            <button
-              onClick={handleMarkPaid}
-              style={{
-                marginTop: 6, fontSize: 10.5, padding: '3px 10px',
-                border: '1px solid var(--line)', borderRadius: 6,
-                background: 'transparent', color: 'var(--text-faint)',
-                cursor: 'pointer', transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--positive)'; e.currentTarget.style.color = 'var(--positive)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.color = 'var(--text-faint)'; }}
-            >
-              Mark as paid
-            </button>
-          </div>
-        )}
-        {isCC && paid && (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 12, color: 'var(--positive)' }}>Paid ✓</div>
-            {(locallyPaid || accountExplicitlyPaid) && (
-              <button
-                onClick={handleMarkUnpaid}
-                style={{
-                  marginTop: 4, fontSize: 10, padding: '2px 8px',
-                  border: '1px solid var(--line)', borderRadius: 6,
-                  background: 'transparent', color: 'var(--text-faint)',
-                  cursor: 'pointer', transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = 'var(--negative)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.color = 'var(--text-faint)'; }}
-              >
-                Mark as unpaid
-              </button>
-            )}
-          </div>
-        )}
+        {/* Delete button */}
+        <button
+          onClick={e => { e.stopPropagation(); onDelete?.(s.id); }}
+          style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '3px 5px', border: '1px solid transparent', borderRadius: 6,
+            background: 'transparent', color: 'var(--text-faint)',
+            cursor: 'pointer', transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--negative)'; e.currentTarget.style.color = 'var(--negative)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)'; }}
+          title="Delete statement"
+        >
+          <Icon name="trash" size={13} stroke={1.5} />
+        </button>
       </div>
 
       {/* Payment method breakdown */}

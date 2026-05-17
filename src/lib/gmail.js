@@ -146,7 +146,7 @@ function buildQuery(account) {
 
   const typeHint = { bank: 'bank', creditCard: '"credit card"', loan: 'loan' }[account.type] || '';
 
-  const parts = ['newer_than:90d', typeQuery];
+  const parts = ['newer_than:90d', 'has:attachment', 'filename:pdf', typeQuery];
   if (term) parts.push(`(${term}${typeHint ? ' ' + typeHint : ''})`);
   // Exclude credit-card emails from bank and loan queries.
   if (account.type === 'bank' || account.type === 'loan') parts.push('-"credit card"');

@@ -23,28 +23,43 @@ const PARSERS = {
   nps: parseNpsStatement,
 };
 
+// Extract the last-4 digits of the card/account number printed in the statement.
+function extractLast4FromStatement(text, accountType) {
+  if (accountType === 'creditCard') {
+    // "Credit Card No. 485498XXXXXX2051"
+    const m = /credit\s+card\s+no\.?\s*([0-9X]+)/i.exec(text);
+    if (m) return m[1].replace(/\s/g, '').slice(-4);
+  } else if (accountType === 'bank') {
+    // "Account No. 1234567890" / "A/c No. XXXXXXXX1234"
+    const m = /a(?:ccount)?\s*(?:\/c\s*)?(?:no\.?|number)\s*[:\-]?\s*([0-9X]+)/i.exec(text);
+    if (m) return m[1].replace(/\s/g, '').slice(-4);
+  }
+  return null;
+}
+
+// Return the last-4 of the account's own number field (whatever the user entered).
+function accountLast4(account) {
+  if (account.type === 'creditCard') return String(account.last4 || '').trim().slice(-4);
+  if (account.type === 'bank')       return String(account.accountNumber || '').replace(/\s/g, '').slice(-4);
+  return '';
+}
+
 export default function StatementAnalysis({ account, onViewReport, onStatementData }) {
-  const [phase, setPhase] = useState('idle'); // idle | loading | locked | done | empty | error
+  const [phase, setPhase] = useState('idle'); // idle | loading | locked | mismatch | done | empty | error
   const [report, setReport] = useState(null);
   const [source, setSource] = useState(null);
   const [error, setError] = useState('');
   const [pdfPassword, setPdfPassword] = useState('');
   const [savedId, setSavedId] = useState(null);
   const [pendingBytes, setPendingBytes] = useState(null);
+  const [pendingParsed, setPendingParsed] = useState(null); // { result, transactions, src } awaiting mismatch confirm
   const [gmailEmail, setGmailEmail] = useState(() => getCachedEmail());
   const fileRef = useRef(null);
 
-  // ── Shared: parse text → save report ────────────────────────────────────────
-  const processText = (text, src) => {
-    const parse = PARSERS[account.type];
-    const result = parse ? parse(text) : {};
+  // ── Shared: commit a parsed result to storage ────────────────────────────────
+  const commitSave = (result, transactions, src) => {
     setSource(src);
     setReport(result);
-
-    const transactions = parseTransactions(text, account.type).map(t => ({
-      ...t, category: categorize(t.description),
-    }));
-
     const saved = saveStatement({
       id: crypto.randomUUID(),
       accountId: account.id || null,
@@ -67,6 +82,29 @@ export default function StatementAnalysis({ account, onViewReport, onStatementDa
         contributions: result.totalContributions ?? null,
       });
     }
+  };
+
+  // ── Shared: parse text → validate ownership → save report ───────────────────
+  const processText = (text, src) => {
+    const parse = PARSERS[account.type];
+    const result = parse ? parse(text) : {};
+
+    const transactions = parseTransactions(text, account.type).map(t => ({
+      ...t, category: categorize(t.description),
+    }));
+
+    // Validate that the statement belongs to this account by comparing last-4.
+    const stmtLast4 = extractLast4FromStatement(text, account.type);
+    const acctSuffix = accountLast4(account);
+    if (stmtLast4 && acctSuffix.length === 4 && stmtLast4 !== acctSuffix) {
+      // Card/account number mismatch — pause and ask user before saving.
+      setPendingParsed({ result, transactions, src });
+      setError(`This statement belongs to ...${stmtLast4}, but this account ends in ...${acctSuffix}.`);
+      setPhase('mismatch');
+      return;
+    }
+
+    commitSave(result, transactions, src);
   };
 
   // ── File upload path ─────────────────────────────────────────────────────────
@@ -155,7 +193,7 @@ export default function StatementAnalysis({ account, onViewReport, onStatementDa
 
   const reset = () => {
     setPhase('idle'); setPdfPassword(''); setError('');
-    setSavedId(null); setPendingBytes(null);
+    setSavedId(null); setPendingBytes(null); setPendingParsed(null);
   };
 
   // ── Idle button style ────────────────────────────────────────────────────────
@@ -259,6 +297,41 @@ export default function StatementAnalysis({ account, onViewReport, onStatementDa
           <span style={{ color: 'var(--negative)' }}>{error}</span>
           <button type="button" onClick={reset}
             style={{ marginLeft: 10, fontSize: 12, color: 'var(--text-dim)' }}>Dismiss</button>
+        </div>
+      )}
+
+      {phase === 'mismatch' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--negative)' }}>{error}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', lineHeight: 1.5 }}>
+            Uploading this statement here will overwrite any existing statement for this account. Are you sure you want to save it anyway?
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => {
+                const { result, transactions, src } = pendingParsed;
+                setPendingParsed(null);
+                commitSave(result, transactions, src);
+              }}
+              style={{
+                fontSize: 12, padding: '5px 12px',
+                border: '1px solid var(--negative)', borderRadius: 8,
+                background: 'transparent', color: 'var(--negative)', cursor: 'pointer',
+              }}
+            >
+              Save anyway
+            </button>
+            <button type="button" onClick={reset}
+              style={{
+                fontSize: 12, padding: '5px 12px',
+                border: '1px solid var(--line)', borderRadius: 8,
+                background: 'transparent', color: 'var(--text-dim)', cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

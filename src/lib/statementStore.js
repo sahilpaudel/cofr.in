@@ -10,10 +10,9 @@ function accountKey(r) {
 export function saveStatement(record) {
   const all = loadStatements();
 
-  // Replace if same account + same source email date (same statement re-analyzed)
+  // Replace any existing statement for the same account — one per account.
   const ak = accountKey(record);
-  const dk = record.source?.date || '';
-  const idx = all.findIndex(r => accountKey(r) === ak && (r.source?.date || '') === dk);
+  const idx = all.findIndex(r => accountKey(r) === ak);
 
   if (idx >= 0) {
     // Preserve the original id so navigation links stay valid

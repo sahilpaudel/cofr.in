@@ -108,29 +108,51 @@ export function parseBankStatement(text) {
 }
 
 export function parseCreditCardStatement(text) {
-  // HDFC due date format: "21 May, 2026" (comma before year)
-  const DATE_WITH_COMMA = /\d{1,2}\s+[A-Za-z]+,?\s+\d{4}/;
+  const lines = text.split('\n').map(l => l.trim());
+
+  // HDFC CC: after y-bucket merging, all column values land on ONE line.
+  // Summary values line: "C 34,278.17 C 36,543.45 + C 40,471.35 + C 0.00 = C 38,206.00"
+  // The amount after "=" is the actual total due; everything before is prior dues / payments.
+  function hdfcTotalDue() {
+    for (let i = 0; i < lines.length; i++) {
+      if (!/total\s+amount\s+due/i.test(lines[i])) continue;
+      for (let j = i + 1; j <= Math.min(i + 5, lines.length - 1); j++) {
+        if (!lines[j]) continue;
+        const m = /=\s*[C₹]\s*([\d,]+(?:\.\d{1,2})?)/.exec(lines[j]);
+        if (m) return parseFloat(m[1].replace(/,/g, ''));
+      }
+    }
+    return null;
+  }
+
+  // HDFC CC: "MINIMUM DUE DUE DATE" on one line; values on another: "C 1,918.00 05 May, 2026"
+  // firstMatchAfterLabel returns "(Including Cash)" which fails the date check — scan further.
+  function hdfcDueDate() {
+    for (let i = 0; i < lines.length; i++) {
+      if (!/due\s+date/i.test(lines[i])) continue;
+      for (let j = i + 1; j <= Math.min(i + 5, lines.length - 1); j++) {
+        if (!lines[j]) continue;
+        const m = /(\d{1,2}\s+[A-Za-z]+,?\s+\d{4})/.exec(lines[j]);
+        if (m) return m[1];
+      }
+    }
+    return null;
+  }
 
   const dueDate =
     firstMatch(text, [
       /(?:payment\s+)?due\s+date\s*:?\s*(\d{1,2}[-\/ ][A-Za-z]+,?\s*\d{2,4})/gi,
       /(?:payment\s+)?due\s+date\s*:?\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4})/gi,
       /pay\s+by\s*:?\s*(\d{1,2}[-\/ ][A-Za-z]+,?\s*\d{2,4})/gi,
-    ]) ||
-    // HDFC: "DUE DATE\n21 May, 2026" — try exact match first, then partial
-    (() => {
-      const raw = firstMatchAfterLabel(text, [/^DUE DATE$/i, /^PAYMENT DUE DATE$/i, /due\s+date/i, /payment\s+due\s+date/i]);
-      return raw && DATE_WITH_COMMA.test(raw) ? raw : null;
-    })();
+    ]) || hdfcDueDate();
 
   const totalDue =
+    hdfcTotalDue() ||
     firstAmount(text, [
       new RegExp(`total\\s+(?:amount\\s+)?due\\s*:?\\s*${AMT}([\\d,]+(?:\\.\\d{1,2})?)`, 'gi'),
       new RegExp(`current\\s+outstanding\\s*:?\\s*${AMT}([\\d,]+(?:\\.\\d{1,2})?)`, 'gi'),
       new RegExp(`total\\s+outstanding\\s*:?\\s*${AMT}([\\d,]+(?:\\.\\d{1,2})?)`, 'gi'),
-    ]) ||
-    // HDFC: "TOTAL AMOUNT DUE\nC16,094.00" — try exact then partial match
-    firstAmountAfterLabel(text, [/^TOTAL AMOUNT DUE$/i, /total\s+amount\s+due/i, /total\s+due/i]);
+    ]);
 
   const minimumDue =
     firstAmount(text, [
@@ -139,17 +161,16 @@ export function parseCreditCardStatement(text) {
     ]) ||
     firstAmountAfterLabel(text, [/^MINIMUM DUE$/i, /^MIN(?:IMUM)?\s+AMOUNT\s+DUE$/i, /minimum\s+(?:amount\s+)?due/i, /min\s+(?:amount\s+)?due/i]);
 
-  // HDFC credit limits are on one line without decimals: "C3,72,000 C3,55,906 C1,48,800"
-  // We find this line by looking 1-3 lines after "TOTAL CREDIT LIMIT"
+  // HDFC credit limits line: "C 3,72,000 C 3,33,794 C 1,48,800" appears ~5 lines after the label.
   const hdfcLimits = (() => {
-    const lines = text.split('\n').map(l => l.trim());
     for (let i = 0; i < lines.length; i++) {
       if (!/total\s+credit\s+limit/i.test(lines[i])) continue;
-      for (let j = i + 1; j <= Math.min(i + 3, lines.length - 1); j++) {
+      for (let j = i + 1; j <= Math.min(i + 7, lines.length - 1); j++) {
+        if (!lines[j]) continue;
         const amts = [...lines[j].matchAll(/(?:[C₹])\s*([\d,]+(?:\.\d{1,2})?)/g)];
         if (amts.length >= 2) {
           return {
-            creditLimit:    parseFloat(amts[0][1].replace(/,/g, '')),
+            creditLimit:     parseFloat(amts[0][1].replace(/,/g, '')),
             availableCredit: parseFloat(amts[1][1].replace(/,/g, '')),
           };
         }
