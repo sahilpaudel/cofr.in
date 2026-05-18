@@ -141,6 +141,13 @@ export const Icons = {
       <line x1="12" y1="8" x2="12.01" y2="8" />
     </>
   ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </>
+  ),
 };
 
 export function Icon({ name, size = 18, stroke = 1.4, fill = 'none', style }) {

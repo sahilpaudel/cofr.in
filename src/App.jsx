@@ -18,6 +18,7 @@ import ImportView from './views/ImportView.jsx';
 import StatementsView from './views/StatementsView.jsx';
 import StatementReportView from './views/StatementReportView.jsx';
 import SubscriptionsView from './views/SubscriptionsView.jsx';
+import GoalsView from './views/GoalsView.jsx';
 import PrivacyView from './views/PrivacyView.jsx';
 import TermsView from './views/TermsView.jsx';
 
@@ -25,6 +26,7 @@ import TermsView from './views/TermsView.jsx';
 const PATH_TO_VIEW = {
   '/':              'dashboard',
   '/accounts':      'accounts',
+  '/goals':         'goals',
   '/subscriptions': 'subscriptions',
   '/statements':    'statements',
   '/import':        'import',
@@ -35,6 +37,7 @@ const PATH_TO_VIEW = {
 const VIEW_TO_PATH = {
   dashboard:      '/',
   accounts:       '/accounts',
+  goals:          '/goals',
   subscriptions:  '/subscriptions',
   statements:     '/statements',
   import:         '/import',
@@ -220,6 +223,7 @@ export default function App() {
               }}
             />
           )}
+          {view === 'goals' && <GoalsView accounts={accounts} />}
           {view === 'subscriptions' && <SubscriptionsView />}
           {view === 'statements' && (
             <StatementsView
@@ -256,6 +260,7 @@ export default function App() {
           onPick={openAdd}
           onImport={() => { setPicker(false); setView('import'); }}
           onManageFamily={() => { setPicker(false); setFamilyModal(true); }}
+          onGoals={() => { setPicker(false); navigate('goals'); }}
         />
       )}
       {modal && (

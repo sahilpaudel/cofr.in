@@ -16,7 +16,7 @@ function TypeButton({ type, onPick }) {
   );
 }
 
-export default function TypePicker({ onClose, onPick, onImport, onManageFamily }) {
+export default function TypePicker({ onClose, onPick, onImport, onManageFamily, onGoals }) {
   return (
     <ModalShell onClose={onClose} maxWidth={640}>
       <div style={{ padding: '28px 28px 16px' }}>
@@ -57,6 +57,22 @@ export default function TypePicker({ onClose, onPick, onImport, onManageFamily }
         </div>
       </div>
 
+
+      {onGoals && (
+        <div style={{ padding: '0 20px 16px' }}>
+          <div className="eyebrow" style={{ padding: '4px 8px 8px' }}>Plan</div>
+          <button className="type-btn" onClick={onGoals}>
+            <div className="type-btn-icon" style={{ color: '#f59e0b' }}>
+              <Icon name="target" size={15} stroke={1.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13 }}>Goals</div>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 1 }}>Track savings targets</div>
+            </div>
+            <Icon name="arrowRight" size={13} stroke={1.6} />
+          </button>
+        </div>
+      )}
 
       <div style={{
         padding: '16px 28px',

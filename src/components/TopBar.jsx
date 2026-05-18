@@ -5,6 +5,7 @@ import ClearDataDialog from './ClearDataDialog.jsx';
 const TABS = [
   { k: 'dashboard',     label: 'Overview' },
   { k: 'accounts',      label: 'Accounts' },
+  { k: 'goals',         label: 'Goals' },
   { k: 'subscriptions', label: 'Subscriptions' },
   { k: 'statements',    label: 'Statements' },
   { k: 'about',         label: 'About' },
