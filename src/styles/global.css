@@ -64,7 +64,8 @@
 }
 
 html {
-  overflow-x: hidden;
+  overflow: hidden;
+  height: 100%;
   overscroll-behavior-y: none;
   transition: background-color 0.25s ease, color 0.2s ease;
 }
@@ -84,6 +85,8 @@ body {
 }
 
 body {
+  overflow: hidden;
+  height: 100%;
   overscroll-behavior-y: none;
   background-image:
     radial-gradient(1200px 600px at 80% -10%, rgba(212, 255, 58, 0.04), transparent 60%),
@@ -314,7 +317,7 @@ a { color: inherit; text-decoration: none; }
 .negative { color: var(--negative); }
 
 /* ─── Layout helpers ─── */
-.app-shell { position: relative; min-height: 100dvh; z-index: 2; }
+.app-shell { position: relative; height: 100dvh; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; z-index: 2; }
 .container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
 
 /* ─── Form input look ─── */
