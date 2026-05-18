@@ -77,6 +77,12 @@ export default function App() {
   const view        = location.view;
   const statementId = location.statementId;
 
+  // Initialise app-shell as a scroll container on iOS Safari (needs one programmatic
+  // scroll before it recognises overflow-y: auto on first paint).
+  useEffect(() => {
+    document.querySelector('.app-shell')?.scrollTo(0, 0);
+  }, []);
+
   // Sync browser back/forward → state
   useEffect(() => {
     const onPop = () => setLocation(parsePath());
