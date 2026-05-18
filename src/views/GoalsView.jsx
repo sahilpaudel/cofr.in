@@ -347,7 +347,7 @@ function GoalModal({ goal, accounts, onSave, onDelete, onClose }) {
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 210, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 210, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
               {accounts.map(a => {
                 const checked = linkedIds.has(a.id);
                 return (
