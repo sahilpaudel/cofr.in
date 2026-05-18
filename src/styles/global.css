@@ -70,6 +70,11 @@ html {
   transition: background-color 0.25s ease, color 0.2s ease;
 }
 
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 html,
 body {
   margin: 0;
@@ -317,7 +322,7 @@ a { color: inherit; text-decoration: none; }
 .negative { color: var(--negative); }
 
 /* ─── Layout helpers ─── */
-.app-shell { position: relative; height: 100dvh; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; z-index: 2; }
+.app-shell { position: relative; height: 100%; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; z-index: 2; }
 .container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
 
 /* ─── Form input look ─── */
@@ -575,10 +580,13 @@ a { color: inherit; text-decoration: none; }
 .modal {
   width: 100%;
   border-radius: var(--radius-lg);
-  overflow: hidden;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, #181818 0%, #131313 100%);
   box-shadow: var(--shadow-modal);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
 }
 [data-theme="light"] .modal {
   background: linear-gradient(180deg, #f8f8f6 0%, #f2f2f0 100%);
@@ -589,11 +597,15 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 .modal-body {
   padding: 20px 28px;
-  max-height: 72vh;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .modal-footer {
   padding: 16px 28px;
@@ -602,6 +614,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 /* ─── Sticky topbar ─── */
@@ -836,11 +849,7 @@ body[data-modal-open] .bottom-nav { display: none !important; }
     border-radius: 20px 20px 0 0;
     max-width: 100% !important;
     max-height: 92dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
   }
-  .modal-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: none; }
   .modal-footer { flex-wrap: wrap; gap: 8px; }
 
   /* type picker: single column on very small screens */

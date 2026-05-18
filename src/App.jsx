@@ -87,6 +87,7 @@ export default function App() {
   const navigate = (newView, id = null) => {
     pushPath(newView, id);
     setLocation({ view: newView, statementId: id });
+    document.querySelector('.app-shell')?.scrollTo({ top: 0 });
   };
 
   // Drop-in replacement for old setView so all child callsites need no changes
