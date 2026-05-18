@@ -296,6 +296,61 @@ function SubscriptionsPreview() {
   );
 }
 
+function GoalsPreview() {
+  const goals = [
+    { name: 'Emergency Fund',   target: 300000, saved: 142000, color: '#06b6d4', deadline: 'Dec 2026' },
+    { name: 'Europe Trip',      target: 250000, saved: 89400,  color: '#f59e0b', deadline: 'Mar 2027' },
+    { name: 'MacBook Pro',      target: 200000, saved: 200000, color: '#10b981', deadline: null       },
+  ];
+  return (
+    <Screen label="Goals — set targets, link accounts, track progress">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div>
+          <div style={{ fontSize: 8.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 2 }}>Goals</div>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, letterSpacing: '-0.03em' }}>
+            3 <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>targets</span>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {[
+            { label: 'Total target', value: '₹7.5L', color: 'var(--text-dim)' },
+            { label: 'Achieved',     value: '1',     color: 'var(--positive)' },
+          ].map(s => (
+            <div key={s.label} style={{ padding: '6px 10px', border: '1px solid var(--line)', borderRadius: 7, background: 'var(--surface)', minWidth: 72 }}>
+              <div style={{ fontSize: 7.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 3 }}>{s.label}</div>
+              <div style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums', color: s.color, fontWeight: 500 }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {goals.map(g => {
+          const pct = Math.min(100, Math.round((g.saved / g.target) * 100));
+          const done = pct >= 100;
+          return (
+            <div key={g.name} style={{ border: `1px solid var(--line)`, borderRadius: 10, borderLeft: `3px solid ${g.color}`, padding: '10px 12px', background: 'var(--surface)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 7 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 500 }}>{g.name}</div>
+                  {g.deadline && !done && <div style={{ fontSize: 8.5, color: 'var(--text-faint)', marginTop: 1 }}>by {g.deadline}</div>}
+                  {done && <div style={{ fontSize: 8.5, color: 'var(--positive)', marginTop: 1 }}>Achieved ✓</div>}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 10.5, fontVariantNumeric: 'tabular-nums', color: g.color, fontWeight: 500 }}>{pct}%</div>
+                  <div style={{ fontSize: 8.5, color: 'var(--text-faint)' }}>{fmtK(g.saved)} / {fmtK(g.target)}</div>
+                </div>
+              </div>
+              <div style={{ height: 3, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: g.color, borderRadius: 3 }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Screen>
+  );
+}
+
 function CASPreview() {
   return (
     <Screen label="CAS Holdings — auto-populated from your CDSL / NSDL statement">
@@ -579,7 +634,7 @@ export default function AboutView({ onNavigate }) {
           <JourneyStep n={3} title="Keep balances current"
             body="Update balances manually any time, upload a PDF statement and let Coffer parse it automatically, or connect Gmail so credit card statements sync their outstanding amount and due date with one click." />
           <JourneyStep n={4} title="See your full picture"
-            body="The Overview shows your net worth, wealth composition, per-member family breakdown, and CAS holdings. Drill into Accounts for the full list, Statements for spending analysis and transaction history, and Subscriptions to track recurring charges." />
+            body="The Overview shows your net worth, wealth composition, per-member family breakdown, and CAS holdings. Drill into Accounts for the full list, Statements for spending analysis and transaction history, Subscriptions to track recurring charges, and Goals to set and track savings targets." />
         </div>
       </div>
 
@@ -654,6 +709,24 @@ export default function AboutView({ onNavigate }) {
             'Mark subscriptions as paused or cancelled',
           ]}
           preview={<SubscriptionsPreview />}
+        />
+      </div>
+
+      {/* ── Goals feature ────────────────────────────────────────── */}
+      <div style={{ paddingTop: 64, paddingBottom: 64, borderBottom: '1px solid var(--line)' }}>
+        <FeatureSection
+          eyebrow="Feature · Goals"
+          title="Save towards what matters"
+          body="Set savings targets, link the asset accounts that count toward each goal, and watch your progress update automatically as balances change. Colour-coded cards, deadline tracking, and a summary of how many goals you've achieved."
+          bullets={[
+            'Create goals with a name, target amount, and optional deadline',
+            'Link any combination of asset accounts — bank, mutual funds, gold, and more',
+            'Progress bar updates live as linked account balances change',
+            'Colour-code goals to tell them apart at a glance',
+            'Summary cards: total target, saved so far, and goals achieved',
+            'Achieved goals highlighted automatically when you hit 100%',
+          ]}
+          preview={<GoalsPreview />}
         />
       </div>
 
