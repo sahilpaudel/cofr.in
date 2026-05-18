@@ -5,13 +5,14 @@ export default function ModalShell({ children, onClose, maxWidth = 560 }) {
     const onKey = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
 
-    // Lock the app-shell scroll container (body is always overflow:hidden on iOS).
     const shell = document.querySelector('.app-shell');
     if (shell) shell.style.overflowY = 'hidden';
+    document.body.setAttribute('data-modal-open', '');
 
     return () => {
       window.removeEventListener('keydown', onKey);
       if (shell) shell.style.overflowY = '';
+      document.body.removeAttribute('data-modal-open');
     };
   }, [onClose]);
 

@@ -732,6 +732,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ─── Bottom navigation (mobile only) ─── */
 .bottom-nav { display: none; }
+body[data-modal-open] .bottom-nav { display: none !important; }
 
 @media (max-width: 640px) {
   .bottom-nav {
@@ -835,9 +836,11 @@ a { color: inherit; text-decoration: none; }
     border-radius: 20px 20px 0 0;
     max-width: 100% !important;
     max-height: 92dvh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
-  .modal-body { max-height: 70dvh; }
+  .modal-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; max-height: none; }
   .modal-footer { flex-wrap: wrap; gap: 8px; }
 
   /* type picker: single column on very small screens */

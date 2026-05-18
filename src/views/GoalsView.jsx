@@ -266,17 +266,18 @@ function GoalModal({ goal, accounts, onSave, onDelete, onClose }) {
 
   return (
     <ModalShell onClose={onClose} maxWidth={480}>
-      <div style={{ padding: '20px 20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>
-            {goal ? 'Edit goal' : 'New goal'}
-          </div>
-          <button onClick={onClose} style={closeBtnStyle}>
-            <Icon name="close" size={16} stroke={1.8} />
-          </button>
+      {/* Header — never scrolls away */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 12px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>
+          {goal ? 'Edit goal' : 'New goal'}
         </div>
+        <button onClick={onClose} style={closeBtnStyle}>
+          <Icon name="close" size={16} stroke={1.8} />
+        </button>
+      </div>
+
+      {/* Scrollable body */}
+      <div style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Name */}
         <div>
@@ -347,7 +348,7 @@ function GoalModal({ goal, accounts, onSave, onDelete, onClose }) {
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 210, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {accounts.map(a => {
                 const checked = linkedIds.has(a.id);
                 return (
@@ -379,52 +380,43 @@ function GoalModal({ goal, accounts, onSave, onDelete, onClose }) {
             </div>
           </div>
         )}
+      </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4, borderTop: '1px solid var(--line)' }}>
-          {onDelete ? (
-            confirmDelete ? (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Delete?</span>
-                <button
-                  onClick={onDelete}
-                  style={{ fontSize: 12, color: 'var(--negative)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  Yes, delete
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  style={{ fontSize: 12, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                style={{ fontSize: 12, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 5 }}
-              >
-                <Icon name="trash" size={13} stroke={1.5} /> Delete
+      {/* Footer — always visible above keyboard */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
+        {onDelete ? (
+          confirmDelete ? (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Delete?</span>
+              <button onClick={onDelete} style={{ fontSize: 12, color: 'var(--negative)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                Yes, delete
               </button>
-            )
-          ) : <span />}
-
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-            <button
-              onClick={handleSave}
-              disabled={!canSave}
-              style={{
-                fontSize: 13, padding: '6px 16px', borderRadius: 8,
-                background: canSave ? color : 'var(--line)',
-                color: canSave ? '#000' : 'var(--text-faint)',
-                border: 'none', cursor: canSave ? 'pointer' : 'default',
-                fontWeight: 600, transition: 'background 0.15s',
-              }}
-            >
-              {goal ? 'Save' : 'Create'}
+              <button onClick={() => setConfirmDelete(false)} style={{ fontSize: 12, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} style={{ fontSize: 12, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Icon name="trash" size={13} stroke={1.5} /> Delete
             </button>
-          </div>
+          )
+        ) : <span />}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            style={{
+              fontSize: 13, padding: '6px 16px', borderRadius: 8,
+              background: canSave ? color : 'var(--line)',
+              color: canSave ? '#000' : 'var(--text-faint)',
+              border: 'none', cursor: canSave ? 'pointer' : 'default',
+              fontWeight: 600, transition: 'background 0.15s',
+            }}
+          >
+            {goal ? 'Save' : 'Create'}
+          </button>
         </div>
       </div>
     </ModalShell>
